@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Infinity Neon</title>
+    <!-- ✅ capacitor.js 제거 (앱 전용) -->
+    <style>
+        :root { --bg-color: #050505; --text-color: #ffffff; --panel-bg: #111; --btn-border: #333; --line-cyan: #00f3ff; --line-pink: #ff00de; --boss-color: #ff004c; }
+        body.light-mode { --bg-color: #f0f2f5; --text-color: #111111; --panel-bg: #ffffff; --btn-border: #ddd; --line-cyan: #00bcd4; --line-pink: #d500f9; }
+        body { background-color: var(--bg-color); margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; height: 100vh; color: var(--text-color); font-family: 'Helvetica Neue', 'Noto Sans KR', sans-serif; touch-action: none; user-select: none; transition: background-color 0.3s, color 0.3s; }
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; }
+        .screen.active { display: flex; }
+
+        /* ── 메인 메뉴 ── */
+        #main-menu-screen { justify-content: center; position: relative; }
+        .neon-bg { position: absolute; width: 200%; height: 200%; background-image: linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 0, 222, 0.1) 1px, transparent 1px); background-size: 50px 50px; transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px); animation: gridMove 20s linear infinite; z-index: -1; pointer-events: none; }
+        @keyframes gridMove { 0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); } 100% { transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px); } }
+        .theme-toggle-btn { position: absolute; top: max(40px, env(safe-area-inset-top)); right: 20px; background: var(--panel-bg); border: 2px solid var(--btn-border); border-radius: 50%; width: 50px; height: 50px; font-size: 24px; cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: all 0.3s; }
+        .main-logo-area { text-align: center; margin-bottom: 50px; position: relative; }
+        .logo-text { font-size: 3.5rem; font-weight: 900; font-style: italic; line-height: 1; }
+        .text-cyan { color: var(--line-cyan); text-shadow: 0 0 20px var(--line-cyan); }
+        .text-pink { color: var(--line-pink); text-shadow: 0 0 20px var(--line-pink); }
+        .start-btn { background: transparent; border: 3px solid var(--text-color); color: var(--text-color); font-size: 1.5rem; font-weight: bold; padding: 15px 60px; border-radius: 50px; cursor: pointer; transition: all 0.3s; box-shadow: 0 0 20px rgba(128,128,128,0.3); }
+        .start-btn:hover { background: var(--text-color); color: var(--bg-color); transform: scale(1.05); }
+
+        /* ── 스테이지 선택 ── */
+        #stage-select-screen { padding: 20px; box-sizing: border-box; justify-content: flex-start; overflow-y: auto; width: 100%; padding-top: max(80px, env(safe-area-inset-top)); }
+        #stage-header { width: 100%; display: flex; align-items: center; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; font-size: 1.5rem; color: var(--text-color); cursor: pointer; padding: 10px; }
+        .screen-title { flex: 1; text-align: center; font-size: 1.5rem; font-weight: bold; margin-right: 40px; }
+        .grid-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; width: 90%; max-width: 400px; padding-bottom: 80px; }
+        .stage-btn { background: var(--panel-bg); border: 2px solid var(--btn-border); color: var(--text-color); font-size: 1.2em; aspect-ratio: 1/1; border-radius: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .stage-btn.unlocked { border-color: var(--line-cyan); color: var(--line-cyan); font-weight: bold; box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+        .stage-btn.boss { border-color: var(--boss-color); color: var(--boss-color); box-shadow: 0 0 10px rgba(255, 0, 76, 0.2); }
+
+        /* ── 게임 화면 상단 바 ── */
+        #top-bar { width: 100%; height: auto; min-height: 80px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; padding-top: max(40px, env(safe-area-inset-top)); box-sizing: border-box; z-index: 10; gap: 5px; }
+        .ui-group { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; }
+        .icon-btn { background: var(--panel-bg); border: 1px solid var(--btn-border); border-radius: 12px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .icon-btn svg { width: 22px; height: 22px; fill: var(--text-color); filter: drop-shadow(0 0 2px var(--line-cyan)); }
+        .icon-btn:active { transform: scale(0.9); border-color: var(--line-cyan); }
+        .level-badge { background: rgba(0, 243, 255, 0.1); border: 1px solid var(--line-cyan); padding: 5px 15px; border-radius: 20px; color: var(--line-cyan); font-weight: bold; white-space: nowrap; flex-shrink: 0; }
+        #timer-display { display: none; color: var(--boss-color); font-size: 1.5em; font-weight: bold; text-shadow: 0 0 10px var(--boss-color); white-space: nowrap; flex-shrink: 0; margin-left: auto; }
+
+        /* ✅ 힌트 버튼 - 광고 문구 제거, 깔끔하게 */
+        .hint-btn { background: linear-gradient(45deg, #00b4d8, #0077b6); border: none; padding: 8px 15px; border-radius: 20px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 0 15px rgba(0, 180, 216, 0.4); white-space: nowrap; flex-shrink: 0; transition: transform 0.15s; }
+        .hint-btn:hover { transform: scale(1.05); }
+        .hint-btn:active { transform: scale(0.95); }
+
+        @media (max-width: 450px) {
+            #top-bar { padding: 0 10px; padding-top: max(30px, env(safe-area-inset-top)); }
+            .ui-group { gap: 5px; }
+            .icon-btn { width: 36px; height: 36px; }
+            .icon-btn svg { width: 18px; height: 18px; }
+            .level-badge { padding: 5px 8px; font-size: 0.9em; }
+            #timer-display { font-size: 1.2em; }
+            .hint-btn { padding: 6px 10px; font-size: 0.85em; }
+        }
+
+        /* ── 게임 캔버스 영역 ── */
+        #game-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; position: relative; }
+        canvas { background: var(--panel-bg); border-radius: 15px; box-shadow: 0 10px 50px rgba(0,0,0,0.3); transition: background-color 0.3s; z-index: 5; }
+        #tutorial-overlay { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 20; pointer-events: none; display: none; }
+
+        /* ── 모달 공통 ── */
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        body.light-mode .modal { background: rgba(255,255,255,0.85); }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        .modal-content { text-align: center; width: 80%; max-width: 300px; display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        .modal-title { font-size: 2.5em; margin: 0; text-shadow: 0 0 20px currentColor; font-weight: 800; font-style: italic; line-height: 1.2; }
+        .modal-sub { color: #ccc; margin: 0; font-size: 1.1em; }
+        body.light-mode .modal-sub { color: #555; }
+        .action-btn { background: transparent; border: 2px solid; padding: 12px 0; width: 100%; border-radius: 50px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: all 0.2s; }
+        .action-btn:hover { transform: scale(1.03); }
+        .btn-cyan { border-color: var(--line-cyan); color: var(--line-cyan); box-shadow: 0 0 15px rgba(0,243,255,0.3); }
+        .btn-red { border-color: var(--boss-color); color: var(--boss-color); box-shadow: 0 0 15px rgba(255,0,76,0.3); }
+
+        /* ── 토스트 메시지 ── */
+        #toast-msg { position: absolute; bottom: 30px; background: rgba(0, 243, 255, 0.15); border: 1px solid var(--line-cyan); color: var(--line-cyan); padding: 10px 22px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 50; font-weight: bold; backdrop-filter: blur(6px); }
+
+        /* ── 힌트 카운트 배지 ── */
+        #hint-count-badge { background: rgba(0,243,255,0.15); border: 1px solid var(--line-cyan); color: var(--line-cyan); border-radius: 20px; padding: 3px 10px; font-size: 0.85em; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- ✅ 오디오: 파일 없어도 오류 무시 -->
+    <audio id="bgm" loop></audio>
+    <audio id="sfx-clear"></audio>
+    <audio id="sfx-fail"></audio>
+
+    <!-- 메인 메뉴 -->
+    <div id="main-menu-screen" class="screen active">
+        <div class="neon-bg"></div>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
+        <div class="main-logo-area">
+            <div class="logo-text">
+                <div class="text-cyan">INFINITY</div>
+                <div class="text-pink">NEON</div>
+            </div>
+        </div>
+        <button class="start-btn" onclick="startGameFlow()">GAME START</button>
+    </div>
+
+    <!-- 스테이지 선택 -->
+    <div id="stage-select-screen" class="screen">
+        <div id="stage-header">
+            <button class="back-btn" onclick="showMainMenu()">◀</button>
+            <div class="screen-title" id="i18n-select-title">LEVEL SELECT</div>
+        </div>
+        <div class="grid-container" id="stage-grid"></div>
+    </div>
+
+    <!-- 게임 화면 -->
+    <div id="game-screen" class="screen">
+        <div id="top-bar">
+            <div class="ui-group">
+                <button class="icon-btn" onclick="goToStageSelect()">
+                    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                </button>
+                <button class="icon-btn" onclick="toggleSound()" id="sound-btn">
+                    <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                </button>
+                <div class="level-badge"><span id="i18n-level">LV.</span><span id="level-num">1</span></div>
+            </div>
+            <div id="timer-display">02:00</div>
+            <!-- ✅ 힌트 버튼: 광고 없이 바로 사용, 횟수 제한 -->
+            <button id="hintBtn" class="hint-btn" onclick="useHint()">
+                <span>💡</span>
+                <span id="hintText">힌트</span>
+                <span id="hint-count-badge">3</span>
+            </button>
+        </div>
+        <div id="game-area">
+            <canvas id="gameCanvas"></canvas>
+            <div id="tutorial-overlay"></div>
+        </div>
+    </div>
+
+    <div id="toast-msg">Message</div>
+
+    <!-- 보스 모달 -->
+    <div id="boss-modal" class="modal">
+        <div class="modal-content">
+            <h1 class="modal-title" style="color: var(--boss-color);">BOSS STAGE</h1>
+            <p id="boss-desc" class="modal-sub">제한시간 2분!</p>
+            <button class="action-btn btn-red" id="i18n-challenge" onclick="startBossGame()">도전하기</button>
+        </div>
+    </div>
+
+    <!-- 결과 모달 -->
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <h1 id="result-title" class="modal-title" style="color: var(--line-cyan);">PERFECT!</h1>
+            <p id="result-sub" class="modal-sub"></p>
+            <button id="result-btn" class="action-btn btn-cyan" onclick="executeNextAction()">NEXT LEVEL</button>
+        </div>
+    </div>
+
+    <script>
+    // ════════════════════════════════════════════════
+    //   INFINITY NEON - 웹 전용 버전
+    //   ✅ Capacitor / AdMob 완전 제거
+    //   ✅ 힌트: 레벨당 3회 무료 제공
+    //   ✅ localStorage로 진행 저장
+    // ════════════════════════════════════════════════
+
+    // ── 힌트 시스템 (광고 대신 레벨당 무료 3회) ──────────
+    const HINTS_PER_LEVEL = 3;
+    let hintsLeft = HINTS_PER_LEVEL;
+
+    function resetHints() {
+        hintsLeft = HINTS_PER_LEVEL;
+        updateHintBadge();
+    }
+
+    function updateHintBadge() {
+        const badge = document.getElementById('hint-count-badge');
+        if (badge) badge.textContent = hintsLeft;
+        const btn = document.getElementById('hintBtn');
+        if (btn) btn.style.opacity = hintsLeft > 0 ? '1' : '0.4';
+    }
+
+    function useHint() {
+        if (isCleared || isTutorial) return;
+        if (hintsLeft <= 0) { showToast(currentLang === 'ko' ? '힌트를 모두 사용했어요!' : 'No hints left!'); return; }
+        hintsLeft--;
+        updateHintBadge();
+        applyHint();
+    }
+
+    // ── 사운드 (파일 없어도 오류 무시) ──────────────────
+    let isMuted = false;
+    const bgm = document.getElementById('bgm');
+    const sfxClear = document.getElementById('sfx-clear');
+    const sfxFail = document.getElementById('sfx-fail');
+    bgm.volume = 0.5;
+    bgm.onerror = () => {};
+    sfxClear.onerror = () => {};
+    sfxFail.onerror = () => {};
+
+    let isAdPlaying = false; // 광고 없으므로 항상 false 유지
+
+    function resumeBgmSafe() {
+        if (!isMuted) bgm.play().catch(() => {});
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') resumeBgmSafe();
+        else bgm.pause();
+    });
+
+    function toggleSound() {
+        isMuted = !isMuted;
+        const btn = document.getElementById('sound-btn');
+        if (isMuted) {
+            bgm.pause();
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`;
+        } else {
+            resumeBgmSafe();
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
+        }
+        updateIcons();
+    }
+
+    function playSound(type) {
+        if (isMuted) return;
+        try {
+            if (type === 'bgm') resumeBgmSafe();
+            else if (type === 'clear') { sfxClear.currentTime = 0; sfxClear.play().catch(() => {}); }
+            else if (type === 'fail') { sfxFail.currentTime = 0; sfxFail.play().catch(() => {}); }
+        } catch(e) {}
+    }
+
+    // ── 테마 ─────────────────────────────────────────
+    let isLightMode = localStorage.getItem('infinity_theme') === 'light';
+    function applyTheme() {
+        const btn = document.getElementById('theme-btn');
+        if (isLightMode) { document.body.classList.add('light-mode'); btn.innerText = '☀️'; }
+        else { document.body.classList.remove('light-mode'); btn.innerText = '🌙'; }
+        updateIcons();
+    }
+    function toggleTheme() {
+        isLightMode = !isLightMode;
+        localStorage.setItem('infinity_theme', isLightMode ? 'light' : 'dark');
+        applyTheme();
+    }
+    function updateIcons() {
+        const fillColor = isLightMode ? '#111' : '#fff';
+        document.querySelectorAll('.icon-btn svg').forEach(svg => svg.style.fill = fillColor);
+    }
+
+    // ── 언어 ─────────────────────────────────────────
+    const currentLang = (navigator.language || navigator.userLanguage).startsWith('ko') ? 'ko' : 'en';
+    const i18n = {
+        en: { selectTitle: "LEVEL SELECT", lvl: "LV.", hint: "Hint", bossTitle: "BOSS STAGE", challenge: "CHALLENGE", perfect: "PERFECT!", timeover: "TIME OVER", moveClear: "Cleared in {moves} moves!", bossClear: "Boss Defeated!", timeFail: "Time's up!", next: "NEXT LEVEL", retry: "RETRY", hintTxt: "Hint applied!", bossTime: "Time Limit: 2 Min!", tutFinish: "Tutorial Cleared!" },
+        ko: { selectTitle: "레벨 선택", lvl: "레벨 ", hint: "힌트", bossTitle: "보스 스테이지", challenge: "도전하기", perfect: "퍼펙트!", timeover: "시간 초과", moveClear: "{moves}번의 터치로 성공!", bossClear: "보스 격파 성공!", timeFail: "시간이 다 되었습니다!", next: "다음 단계 ▶", retry: "다시 하기", hintTxt: "힌트가 적용되었습니다.", bossTime: "제한시간 2분!", tutFinish: "튜토리얼 완료!" }
+    };
+    function setLanguage() {
+        const t = i18n[currentLang];
+        document.getElementById('i18n-select-title').innerText = t.selectTitle;
+        document.getElementById('i18n-level').innerText = t.lvl;
+        document.getElementById('hintText').innerText = t.hint;
+        document.getElementById('i18n-challenge').innerText = t.challenge;
+        document.getElementById('boss-desc').innerText = t.bossTime;
+    }
+
+    // ── 진행 저장 ─────────────────────────────────────
+    let maxLevel = localStorage.getItem('infinity_max_level')
+        ? parseInt(localStorage.getItem('infinity_max_level')) : 1;
+
+    // ── 캔버스 설정 ───────────────────────────────────
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let TILE_SIZE = 80, ROWS = 5, COLS = 4, LINE_WIDTH = 10;
+    let level = 1, moveCount = 0;
+    let grid = [], particles = [];
+    let isCleared = false;
+    let isBossStage = false, maxTime = 120, timeLeft = 120, timerInterval = null;
+    let isTutorial = false;
+
+    // ── 화면 전환 ──────────────────────────────────────
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+    function showMainMenu() { showScreen('main-menu-screen'); applyTheme(); }
+    function goToStageSelect() { clearInterval(timerInterval); renderStageGrid(); showScreen('stage-select-screen'); }
+
+    function startGameFlow() {
+        playSound('bgm');
+        if (localStorage.getItem('infinity_tutorial_done') === 'true') goToStageSelect();
+        else prepareTutorial();
+    }
+
+    // ── 스테이지 그리드 ───────────────────────────────
+    function renderStageGrid() {
+        const gridEl = document.getElementById('stage-grid');
+        gridEl.innerHTML = '';
+        for (let i = 1; i <= 1000; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'stage-btn';
+            if (i <= maxLevel) btn.classList.add('unlocked');
+            if (i % 5 === 0) btn.classList.add('boss');
+            btn.innerText = i <= maxLevel ? i : '🔒';
+            if (i <= maxLevel) btn.onclick = () => prepareGame(i);
+            gridEl.appendChild(btn);
+        }
+    }
+    function formatTime(seconds) {
+        let m = Math.floor(seconds / 60), s = seconds % 60;
+        return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+    }
+
+    // ── 게임 준비 ──────────────────────────────────────
+    function prepareGame(targetLevel) {
+        isTutorial = false;
+        document.getElementById('tutorial-overlay').style.display = 'none';
+        level = targetLevel;
+        isBossStage = (level % 5 === 0);
+        document.getElementById('level-num').innerText = level;
+        showScreen('game-screen');
+        document.getElementById('boss-modal').classList.remove('active');
+        document.getElementById('result-modal').classList.remove('active');
+
+        const container = document.getElementById('game-area');
+        const maxW = container.clientWidth - 20, maxH = container.clientHeight - 20;
+        if (level > 10) { ROWS = 7; COLS = 5; }
+        else if (level > 5) { ROWS = 6; COLS = 5; }
+        else { ROWS = 5; COLS = 4; }
+        TILE_SIZE = Math.min(Math.floor(maxW / COLS), Math.floor(maxH / ROWS), 100);
+        canvas.width = COLS * TILE_SIZE;
+        canvas.height = ROWS * TILE_SIZE;
+
+        // 힌트 충전
+        resetHints();
+
+        if (isBossStage) {
+            generateLevel(); maxTime = 120;
+            document.getElementById('timer-display').style.display = 'block';
+            document.getElementById('timer-display').innerText = formatTime(maxTime);
+            document.getElementById('boss-modal').classList.add('active');
+        } else {
+            document.getElementById('timer-display').style.display = 'none';
+            initGameSession();
+        }
+    }
+
+    function prepareTutorial() {
+        isTutorial = true; level = 0; isBossStage = false;
+        document.getElementById('level-num').innerText = 'TUTORIAL';
+        showScreen('game-screen');
+        document.getElementById('boss-modal').classList.remove('active');
+        document.getElementById('result-modal').classList.remove('active');
+
+        ROWS = 2; COLS = 2;
+        const container = document.getElementById('game-area');
+        const maxW = container.clientWidth - 20, maxH = container.clientHeight - 20;
+        TILE_SIZE = Math.min(Math.floor(maxW / COLS), Math.floor(maxH / ROWS), 150);
+        canvas.width = COLS * TILE_SIZE;
+        canvas.height = ROWS * TILE_SIZE;
+
+        grid = [
+            [new Tile(0, 0), new Tile(0, 1)],
+            [new Tile(1, 0), new Tile(1, 1)]
+        ];
+        grid[0][0].baseConnections = [false, true, true, false];  grid[0][0].rotation = 0;
+        grid[0][1].baseConnections = [false, false, true, true];  grid[0][1].rotation = 0;
+        grid[1][0].baseConnections = [true, true, false, false];  grid[1][0].rotation = 0;
+        grid[1][1].baseConnections = [true, false, false, true];  grid[1][1].rotation = 1;
+
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+            grid[r][c].targetAngle = grid[r][c].rotation * (Math.PI / 2);
+            grid[r][c].currentAngle = grid[r][c].targetAngle;
+        }
+
+        document.getElementById('timer-display').style.display = 'none';
+        moveCount = 0; isCleared = false; particles = [];
+        requestAnimationFrame(loop);
+
+        const overlay = document.getElementById('tutorial-overlay');
+        overlay.style.display = 'block';
+        setTimeout(() => {
+            const rect = canvas.getBoundingClientRect();
+            const containerRect = document.getElementById('game-area').getBoundingClientRect();
+            const cx = rect.left - containerRect.left + (1 * TILE_SIZE) + TILE_SIZE / 2;
+            const cy = rect.top - containerRect.top + (1 * TILE_SIZE) + TILE_SIZE / 2;
+            overlay.innerHTML = `<div style="position:absolute; left:${cx-20}px; top:${cy-20}px; font-size:50px; animation: tapAnim 1s infinite;">👆</div><style>@keyframes tapAnim { 0%{transform:scale(1);} 50%{transform:scale(0.8);} 100%{transform:scale(1);} }</style>`;
+        }, 50);
+    }
+
+    function startBossGame() {
+        document.getElementById('boss-modal').classList.remove('active');
+        initGameSession();
+        timeLeft = maxTime;
+        startTimer();
+    }
+    function initGameSession() {
+        if (!isBossStage && !isTutorial) generateLevel();
+        moveCount = 0; isCleared = false; particles = [];
+        requestAnimationFrame(loop);
+    }
+    function startTimer() {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (isCleared) return;
+            timeLeft--;
+            document.getElementById('timer-display').innerText = formatTime(timeLeft);
+            if (timeLeft <= 0) gameFail();
+        }, 1000);
+    }
+
+    // ── 타일 클래스 ───────────────────────────────────
+    class Tile {
+        constructor(r, c) {
+            this.r = r; this.c = c;
+            this.baseConnections = [false, false, false, false];
+            this.rotation = 0;
+            this.currentAngle = 0; this.targetAngle = 0;
+            this.isLit = false; this.isHinted = false;
+        }
+        getConnections() {
+            let conns = [...this.baseConnections];
+            for (let i = 0; i < this.rotation; i++) conns.unshift(conns.pop());
+            return conns;
+        }
+        rotate() {
+            this.rotation = (this.rotation + 1) % 4;
+            this.targetAngle += Math.PI / 2;
+            this.isHinted = false;
+            moveCount++;
+            checkConnections();
+        }
+    }
+
+    // ── 레벨 생성 (미로 알고리즘) ─────────────────────
+    function generateLevel() {
+        grid = [];
+        for (let r = 0; r < ROWS; r++) {
+            let row = [];
+            for (let c = 0; c < COLS; c++) row.push(new Tile(r, c));
+            grid.push(row);
+        }
+        let visited = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+        let stack = [{ r: Math.floor(ROWS / 2), c: Math.floor(COLS / 2) }];
+        visited[stack[0].r][stack[0].c] = true;
+        while (stack.length > 0) {
+            let curr = stack[stack.length - 1];
+            let neighbors = [];
+            const dirs = [
+                { r: -1, c: 0, idx: 0, opp: 2 }, { r: 0, c: 1, idx: 1, opp: 3 },
+                { r: 1, c: 0, idx: 2, opp: 0 }, { r: 0, c: -1, idx: 3, opp: 1 }
+            ];
+            for (let d of dirs) {
+                let nr = curr.r + d.r, nc = curr.c + d.c;
+                if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc])
+                    neighbors.push({ r: nr, c: nc, dir: d });
+            }
+            if (neighbors.length > 0) {
+                let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                grid[curr.r][curr.c].baseConnections[next.dir.idx] = true;
+                grid[next.r][next.c].baseConnections[next.dir.opp] = true;
+                visited[next.r][next.c] = true;
+                stack.push({ r: next.r, c: next.c });
+            } else stack.pop();
+        }
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+            let rand = Math.floor(Math.random() * 4);
+            grid[r][c].rotation = rand;
+            grid[r][c].targetAngle = rand * (Math.PI / 2);
+            grid[r][c].currentAngle = grid[r][c].targetAngle;
+        }
+        checkConnections();
+    }
+
+    // ── 연결 확인 ──────────────────────────────────────
+    function checkConnections() {
+        let allConnected = true;
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+            let conns = grid[r][c].getConnections();
+            grid[r][c].isLit = false;
+            if (conns[0] && (r === 0 || !grid[r-1][c].getConnections()[2])) allConnected = false;
+            if (conns[1] && (c === COLS-1 || !grid[r][c+1].getConnections()[3])) allConnected = false;
+            if (conns[2] && (r === ROWS-1 || !grid[r+1][c].getConnections()[0])) allConnected = false;
+            if (conns[3] && (c === 0 || !grid[r][c-1].getConnections()[1])) allConnected = false;
+        }
+        if (allConnected && !isCleared) gameClear();
+        if (allConnected) for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) grid[r][c].isLit = true;
+    }
+
+    // ── 게임 클리어 / 실패 ────────────────────────────
+    function gameClear() {
+        isCleared = true; clearInterval(timerInterval);
+        createParticles(canvas.width / 2, canvas.height / 2, 50);
+        playSound('clear');
+
+        if (isTutorial) {
+            localStorage.setItem('infinity_tutorial_done', 'true');
+            document.getElementById('tutorial-overlay').style.display = 'none';
+        } else if (level === maxLevel && maxLevel < 1000) {
+            maxLevel++;
+            localStorage.setItem('infinity_max_level', maxLevel);
+        }
+
+        setTimeout(() => {
+            const t = i18n[currentLang];
+            document.getElementById('result-title').innerText = t.perfect;
+            document.getElementById('result-title').style.color = 'var(--line-cyan)';
+            document.getElementById('result-sub').innerText = isTutorial
+                ? t.tutFinish
+                : (isBossStage ? t.bossClear : t.moveClear.replace('{moves}', moveCount));
+            const btn = document.getElementById('result-btn');
+            btn.innerText = t.next; btn.className = 'action-btn btn-cyan';
+            document.getElementById('result-modal').classList.add('active');
+        }, 800);
+    }
+
+    function gameFail() {
+        isCleared = true; playSound('fail');
+        const t = i18n[currentLang];
+        document.getElementById('result-title').innerText = t.timeover;
+        document.getElementById('result-title').style.color = 'var(--boss-color)';
+        document.getElementById('result-sub').innerText = t.timeFail;
+        const btn = document.getElementById('result-btn');
+        btn.innerText = t.retry; btn.className = 'action-btn btn-red';
+        document.getElementById('result-modal').classList.add('active');
+    }
+
+    // ✅ 광고 없이 바로 다음 레벨로
+    function executeNextAction() {
+        const isRetry = document.getElementById('result-btn').innerText === i18n[currentLang].retry;
+        let nextTarget = isTutorial ? 1 : (isRetry ? level : level + 1);
+        prepareGame(nextTarget);
+    }
+
+    // ── 힌트 적용 ──────────────────────────────────────
+    function applyHint() {
+        let wrongTiles = [];
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+            let tile = grid[r][c];
+            if (JSON.stringify(tile.getConnections()) !== JSON.stringify(tile.baseConnections) && !tile.isHinted)
+                wrongTiles.push(tile);
+        }
+        if (wrongTiles.length > 0) {
+            wrongTiles.sort(() => Math.random() - 0.5);
+            let count = Math.min(3, wrongTiles.length);
+            for (let i = 0; i < count; i++) wrongTiles[i].isHinted = true;
+            showToast(i18n[currentLang].hintTxt);
+        } else {
+            showToast(currentLang === 'ko' ? '방향은 맞아요! 연결을 확인해보세요.' : 'Direction is correct. Check connections!');
+        }
+    }
+
+    // ── 렌더 루프 ──────────────────────────────────────
+    function loop() {
+        if (isCleared && particles.length === 0) return;
+        ctx.fillStyle = isLightMode ? '#ffffff' : '#050505';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
+            drawTile(grid[r][c], c * TILE_SIZE, r * TILE_SIZE);
+        updateParticles();
+        requestAnimationFrame(loop);
+    }
+
+    function drawTile(tile, x, y) {
+        let cx = x + TILE_SIZE / 2, cy = y + TILE_SIZE / 2;
+        let diff = tile.targetAngle - tile.currentAngle;
+        if (Math.abs(diff) > 0.001) tile.currentAngle += diff * 0.2;
+        else tile.currentAngle = tile.targetAngle;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(tile.currentAngle);
+        ctx.lineWidth = LINE_WIDTH;
+        ctx.lineCap = 'round';
+
+        if (tile.isLit) {
+            ctx.strokeStyle = '#00f3ff';
+            ctx.shadowColor = '#00f3ff'; ctx.shadowBlur = 20;
+        } else if (tile.isHinted) {
+            ctx.strokeStyle = '#ff004c';
+            ctx.shadowColor = '#ff004c'; ctx.shadowBlur = 15;
+        } else {
+            ctx.strokeStyle = isLightMode ? '#ddd' : '#333';
+            ctx.shadowBlur = 0;
+        }
+
+        const conns = tile.baseConnections;
+        ctx.beginPath();
+        if (conns[0]) { ctx.moveTo(0, 0); ctx.lineTo(0, -TILE_SIZE / 2); }
+        if (conns[1]) { ctx.moveTo(0, 0); ctx.lineTo(TILE_SIZE / 2, 0); }
+        if (conns[2]) { ctx.moveTo(0, 0); ctx.lineTo(0, TILE_SIZE / 2); }
+        if (conns[3]) { ctx.moveTo(0, 0); ctx.lineTo(-TILE_SIZE / 2, 0); }
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // ── 파티클 ────────────────────────────────────────
+    function createParticles(x, y, count) {
+        for (let i = 0; i < count; i++)
+            particles.push({ x, y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1.0, color: `hsl(${Math.random()*60+180}, 100%, 50%)` });
+    }
+    function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02; p.vx *= 0.95; p.vy *= 0.95;
+            if (p.life <= 0) { particles.splice(i, 1); continue; }
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // ── 입력 ──────────────────────────────────────────
+    canvas.addEventListener('pointerdown', e => {
+        if (isCleared || (isBossStage && timeLeft <= 0)) return;
+        const rect = canvas.getBoundingClientRect();
+        let c = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+        let r = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+        if (r >= 0 && r < ROWS && c >= 0 && c < COLS) grid[r][c].rotate();
+    });
+
+    // ── 토스트 ────────────────────────────────────────
+    function showToast(msg) {
+        const el = document.getElementById('toast-msg');
+        el.innerText = msg; el.style.opacity = 1;
+        setTimeout(() => { el.style.opacity = 0; }, 2000);
+    }
+
+    // ── 초기화 ────────────────────────────────────────
+    setLanguage();
+    applyTheme();
+    showMainMenu();
+    </script>
+</body>
+</html>
