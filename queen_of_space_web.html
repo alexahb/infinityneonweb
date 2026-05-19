@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Queen of Space 👑</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap');
+
+:root {
+  --bg1: #1A237E; --bg2: #37474F;
+  --neon: rgba(255,255,255,0.7);
+  --font: 'Noto Sans KR', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  background: linear-gradient(135deg, var(--bg1), var(--bg2));
+  color: #fff;
+  font-family: var(--font);
+  transition: background 0.8s;
+  user-select: none;
+}
+
+/* ── 화면 전환 ── */
+.screen { display:none; width:100%; height:100%; flex-direction:column; align-items:center; position:absolute; top:0; left:0; }
+.screen.active { display:flex; }
+
+/* ── 스플래시 ── */
+#splash {
+  justify-content:center; align-items:center;
+  background: linear-gradient(160deg, #0a0020 0%, #1a0a4a 50%, #0d1a40 100%);
+  cursor: pointer;
+}
+.stars-bg {
+  position:absolute; inset:0; overflow:hidden; pointer-events:none;
+}
+.star {
+  position:absolute; background:#fff; border-radius:50%;
+  animation: twinkle var(--d,2s) var(--delay,0s) ease-in-out infinite alternate;
+}
+@keyframes twinkle { 0%{opacity:0.1;} 100%{opacity:1;} }
+
+.splash-content { position:relative; z-index:2; text-align:center; padding:40px 30px; max-width:380px; }
+.splash-crown { font-size:80px; display:block; margin-bottom:20px; filter:drop-shadow(0 0 30px #ffd700); animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+
+.splash-title {
+  font-family:'Orbitron',sans-serif; font-size:1.6rem; font-weight:900;
+  color:#ffd700; letter-spacing:3px;
+  text-shadow: 0 0 20px #ffd700, 0 0 40px rgba(255,215,0,0.5);
+  margin-bottom:8px;
+}
+.splash-sub {
+  font-family:'Orbitron',sans-serif; font-size:0.85rem; color:#aac; letter-spacing:2px; margin-bottom:32px;
+}
+#splash-story {
+  font-size:1rem; line-height:2; letter-spacing:1.5px; color:#ddf;
+  min-height:140px; text-shadow:0 0 8px #88f;
+  white-space:pre-line;
+}
+.tap-to-start {
+  margin-top:28px; font-size:1rem; color:#ffd700; letter-spacing:3px;
+  animation: blink 1.2s ease-in-out infinite alternate;
+  font-weight:700;
+}
+@keyframes blink { 0%{opacity:0.3;} 100%{opacity:1;} }
+
+/* ── 게임 화면 ── */
+#game { justify-content:flex-start; }
+
+#top-bar {
+  width:100%; display:flex; justify-content:space-between; align-items:center;
+  padding: 12px 16px 8px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex-shrink:0;
+  gap:8px;
+}
+.level-info { display:flex; flex-direction:column; align-items:flex-start; }
+.level-num {
+  font-family:'Orbitron',sans-serif; font-size:1.1rem; font-weight:700;
+  color:#ffd700; text-shadow:0 0 10px #ffd700;
+}
+.chapter-name { font-size:0.72rem; color:#aac; letter-spacing:1px; margin-top:1px; }
+
+.lives { display:flex; gap:4px; align-items:center; }
+.heart { font-size:1.3rem; transition:transform 0.2s; }
+.heart.lost { opacity:0.2; }
+
+.top-btns { display:flex; gap:6px; }
+.icon-btn {
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+  border-radius:10px; width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:1.1rem; transition:all 0.15s;
+}
+.icon-btn:active { transform:scale(0.88); background:rgba(255,255,255,0.25); }
+
+#game-area {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  width:100%; padding:10px; overflow:hidden;
+}
+
+#board-wrap {
+  position:relative; display:inline-block;
+}
+
+#board {
+  display:grid; border-radius:12px; overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.1);
+  touch-action:none;
+}
+
+.cell {
+  display:flex; align-items:center; justify-content:center;
+  position:relative; cursor:pointer;
+  transition: background 0.12s;
+}
+.cell:active { filter:brightness(1.3); }
+.cell-inner {
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  font-size:var(--cell-icon-size, 1.5rem);
+  position:relative; z-index:1;
+}
+.cell .queen-emoji {
+  filter:drop-shadow(0 0 8px #ffd700) drop-shadow(0 0 16px rgba(255,215,0,0.6));
+  animation: queenPop 0.25s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes queenPop { 0%{transform:scale(0);} 100%{transform:scale(1);} }
+
+.cell .cross-mark {
+  font-size:var(--cell-cross-size,1rem);
+  font-weight:900; color:#ef4444;
+  text-shadow:0 0 6px #ef4444;
+  font-family:'Orbitron',sans-serif;
+}
+
+/* 튜토리얼 하이라이트 */
+.cell.tut-target { animation: tutPulse 1s ease-in-out infinite alternate; }
+@keyframes tutPulse { 0%{box-shadow:inset 0 0 0 2px rgba(255,235,0,0.5);} 100%{box-shadow:inset 0 0 0 3px #ffe600, 0 0 12px #ffe600;} }
+.cell.tut-dim { filter:brightness(0.35); pointer-events:none; }
+
+/* 클리어 오버레이 */
+#win-overlay {
+  display:none; position:absolute; inset:0;
+  background:rgba(0,0,0,0.72); border-radius:12px;
+  flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  z-index:10;
+}
+#win-overlay.show { display:flex; animation:fadeIn 0.4s; }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+.win-title {
+  font-family:'Orbitron',sans-serif; font-size:1.4rem; font-weight:900;
+  color:#fff; text-shadow:0 0 20px #ffd700;
+  text-align:center; letter-spacing:2px; line-height:1.5;
+}
+.next-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border:none; border-radius:30px; padding:12px 32px;
+  color:#000; font-size:1rem; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+  box-shadow:0 4px 20px rgba(245,158,11,0.5);
+  transition:transform 0.15s, box-shadow 0.15s; font-family:var(--font);
+}
+.next-btn:hover { transform:scale(1.05); box-shadow:0 6px 28px rgba(245,158,11,0.7); }
+.next-btn:active { transform:scale(0.97); }
+
+/* 하단 버튼 바 */
+#bottom-bar {
+  width:100%; display:flex; justify-content:space-around; align-items:center;
+  padding:10px 16px 14px;
+  background:rgba(0,0,0,0.4);
+  backdrop-filter:blur(6px);
+  border-top:1px solid rgba(255,255,255,0.1);
+  flex-shrink:0; gap:10px;
+}
+.action-btn {
+  flex:1; max-width:110px; padding:10px 4px;
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+  border-radius:14px; color:#fff; font-size:0.82rem; font-weight:700;
+  cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px;
+  transition:all 0.15s; font-family:var(--font);
+}
+.action-btn:active { transform:scale(0.93); background:rgba(255,255,255,0.22); }
+.action-btn:disabled { opacity:0.35; cursor:not-allowed; }
+.action-btn .btn-icon { font-size:1.3rem; }
+#hint-btn {
+  background:linear-gradient(135deg,rgba(245,158,11,0.3),rgba(217,119,6,0.3));
+  border-color:rgba(245,158,11,0.5);
+  color:#fcd34d;
+}
+
+/* 메시지 바 */
+#msg-bar {
+  width:100%; padding:8px 16px; min-height:52px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.3);
+  font-size:0.88rem; line-height:1.5; text-align:center;
+  color:#ddd; flex-shrink:0; border-top:1px solid rgba(255,255,255,0.07);
+}
+#msg-bar.tut-active { border-color:rgba(255,230,0,0.4); color:#ffe; }
+#msg-bar.win-msg { color:#ffd700; font-weight:700; }
+
+/* ── 게임오버 모달 ── */
+#gameover-modal {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88);
+  z-index:100; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+}
+#gameover-modal.show { display:flex; animation:fadeIn 0.4s; }
+.gameover-icon { font-size:5rem; filter:drop-shadow(0 0 20px #ef4444); }
+.gameover-title { font-family:'Orbitron',sans-serif; font-size:2rem; color:#ef4444; font-weight:900; letter-spacing:3px; text-shadow:0 0 20px #ef4444; }
+.gameover-desc { color:#aaa; font-size:1rem; text-align:center; line-height:1.6; }
+.revive-btn {
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  border:none; border-radius:30px; padding:14px 36px;
+  color:#000; font-size:1.05rem; font-weight:700; cursor:pointer;
+  font-family:var(--font); box-shadow:0 4px 20px rgba(245,158,11,0.5);
+  transition:transform 0.15s;
+}
+.revive-btn:hover { transform:scale(1.04); }
+
+/* ── 토스트 ── */
+#toast {
+  position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+  background:rgba(30,30,60,0.92); border:1px solid rgba(255,255,255,0.2);
+  color:#fff; padding:10px 22px; border-radius:24px;
+  font-size:0.9rem; font-weight:700; pointer-events:none;
+  opacity:0; transition:opacity 0.3s; z-index:200;
+  backdrop-filter:blur(6px); white-space:nowrap;
+}
+#toast.show { opacity:1; }
+
+/* 레벨 선택 다이얼로그 */
+#level-dialog {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:150;
+  flex-direction:column; align-items:center; justify-content:center; padding:20px;
+}
+#level-dialog.show { display:flex; }
+.dialog-box {
+  background:#1a1a2e; border:1px solid rgba(255,255,255,0.15); border-radius:20px;
+  padding:24px; width:100%; max-width:360px; max-height:80vh; overflow-y:auto;
+}
+.dialog-title { font-family:'Orbitron',sans-serif; color:#ffd700; font-size:1rem; margin-bottom:16px; text-align:center; letter-spacing:1px; }
+.level-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+.lv-btn {
+  aspect-ratio:1; border-radius:10px; border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.07); color:#fff; font-size:0.85rem; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s; font-family:var(--font);
+}
+.lv-btn:hover { background:rgba(255,215,0,0.2); border-color:#ffd700; color:#ffd700; }
+.lv-btn.current { background:rgba(255,215,0,0.25); border-color:#ffd700; color:#ffd700; }
+.dialog-close {
+  margin-top:16px; width:100%; padding:11px; border-radius:12px;
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+  color:#aaa; cursor:pointer; font-family:var(--font);
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 스플래시 화면 ══ -->
+<div id="splash" class="screen active" onclick="splashTap()">
+  <div class="stars-bg" id="stars"></div>
+  <div class="splash-content">
+    <span class="splash-crown">👑</span>
+    <div class="splash-title">QUEEN OF SPACE</div>
+    <div class="splash-sub">우주의 질서를 복구하라</div>
+    <div id="splash-story"></div>
+    <div class="tap-to-start" id="tap-hint" style="display:none">- 화면을 터치하여 여정 시작 -</div>
+  </div>
+</div>
+
+<!-- ══ 게임 화면 ══ -->
+<div id="game" class="screen">
+  <!-- 상단 바 -->
+  <div id="top-bar">
+    <div class="level-info">
+      <div class="level-num" id="level-num">Level 1</div>
+      <div class="chapter-name" id="chapter-name">🌙 챕터 1 : 고요한 달</div>
+    </div>
+    <div class="lives" id="lives"></div>
+    <div class="top-btns">
+      <div class="icon-btn" onclick="toggleSound()" id="sound-btn" title="사운드">🔊</div>
+      <div class="icon-btn" onclick="showLevelDialog()" title="레벨 이동">⚡</div>
+      <div class="icon-btn" onclick="restartLevel()" title="다시 시작">🔄</div>
+    </div>
+  </div>
+
+  <!-- 보드 -->
+  <div id="game-area">
+    <div id="board-wrap">
+      <div id="board"></div>
+      <div id="win-overlay">
+        <div class="win-title" id="win-title">✨ WARP SUCCESS ✨</div>
+        <button class="next-btn" onclick="nextLevel()">🚀 다음 레벨로 워프</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메시지 바 -->
+  <div id="msg-bar"></div>
+
+  <!-- 하단 액션 버튼 -->
+  <div id="bottom-bar">
+    <button class="action-btn" id="undo-btn" onclick="doUndo()">
+      <span class="btn-icon">↩️</span>
+      <span>취소</span>
+    </button>
+    <button class="action-btn" id="clear-btn" onclick="doClearCrosses()">
+      <span class="btn-icon">🧹</span>
+      <span>지우기</span>
+    </button>
+    <button class="action-btn" id="hint-btn" onclick="doHint()">
+      <span class="btn-icon">💡</span>
+      <span id="hint-label">힌트 (1)</span>
+    </button>
+  </div>
+</div>
+
+<!-- 게임오버 -->
+<div id="gameover-modal">
+  <div class="gameover-icon">💔</div>
+  <div class="gameover-title">SYSTEM DOWN</div>
+  <div class="gameover-desc">에너지 실드가 모두 파괴되었습니다.<br>동력을 복구해야 합니다.</div>
+  <button class="revive-btn" onclick="revive()">⚡ 에너지 복구 (부활)</button>
+</div>
+
+<!-- 레벨 선택 다이얼로그 -->
+<div id="level-dialog">
+  <div class="dialog-box">
+    <div class="dialog-title">⚡ 은하계 선택 (1~100)</div>
+    <div class="level-grid" id="level-grid"></div>
+    <button class="dialog-close" onclick="hideLevelDialog()">닫기</button>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+//   QUEEN OF SPACE — 웹 전용 버전
+//   Flutter → HTML/JS 완전 재구현
+//   ✅ 광고 없음  ✅ 힌트 무료  ✅ 크롬북 최적화
+// ════════════════════════════════════════════
+
+// ── 언어 감지 ──────────────────────────────
+const lang = (navigator.language||'ko').startsWith('ko') ? 'ko' : 'en';
+const T = {
+  splashStory: { ko:"우주의 질서가 무너졌습니다...\n\n당신은 우주의 여왕이 되어\n별의 왕관을 배치해\n각 행성의 몰락을 막아야 합니다.", en:"The order of the universe has collapsed...\n\nAs the Queen of Space,\nyou must place the star crowns\nto prevent the fall of the planets." },
+  chapters: [
+    { ko:"🌙 챕터 1 : 고요한 달", en:"🌙 Ch 1 : Silent Moon", bg1:"#1A237E", bg2:"#37474F", neon:"rgba(200,220,255,0.8)" },
+    { ko:"🪐 챕터 2 : 그을린 수성", en:"🪐 Ch 2 : Scorched Mercury", bg1:"#3E2723", bg2:"#212121", neon:"rgba(255,140,60,0.9)" },
+    { ko:"✨ 챕터 3 : 눈부신 금성", en:"✨ Ch 3 : Dazzling Venus", bg1:"#E65100", bg2:"#F9A825", neon:"rgba(255,255,100,0.9)" },
+    { ko:"🌍 챕터 4 : 푸른 지구", en:"🌍 Ch 4 : Blue Earth", bg1:"#1565C0", bg2:"#2E7D32", neon:"rgba(100,200,255,0.9)" },
+    { ko:"🔴 챕터 5 : 붉은 화성", en:"🔴 Ch 5 : Red Mars", bg1:"#B71C1C", bg2:"#BF360C", neon:"rgba(255,100,100,0.9)" },
+    { ko:"🌩️ 챕터 6 : 폭풍의 목성", en:"🌩️ Ch 6 : Stormy Jupiter", bg1:"#4E342E", bg2:"#E65100", neon:"rgba(255,180,50,0.9)" },
+    { ko:"🪐 챕터 7 : 신비의 토성", en:"🪐 Ch 7 : Mystic Saturn", bg1:"#311B92", bg2:"#1A237E", neon:"rgba(200,100,255,0.9)" },
+    { ko:"🧊 챕터 8 : 얼어붙은 천왕성", en:"🧊 Ch 8 : Frozen Uranus", bg1:"#006064", bg2:"#01579B", neon:"rgba(100,255,255,0.9)" },
+    { ko:"🌊 챕터 9 : 심연의 해왕성", en:"🌊 Ch 9 : Abyssal Neptune", bg1:"#0D47A1", bg2:"#010b1e", neon:"rgba(100,150,255,0.9)" },
+    { ko:"☀️ 챕터 10 : 타오르는 태양", en:"☀️ Ch 10 : Blazing Sun", bg1:"#B71C1C", bg2:"#000000", neon:"rgba(255,215,0,1)" },
+  ],
+  tutSteps: [
+    { ko:"👋 우주의 여왕님, 환영합니다!\n정답 자리에 [더블클릭/더블탭]하여 👑을 놓아보세요.", en:"👋 Welcome, Queen!\n[Double-tap] the correct spot to place a 👑." },
+    { ko:"👑이 놓이면 같은 가로/세로줄에는 다른 👑이 올 수 없습니다.\n빛나는 빈칸들을 [클릭/탭]하여 모두 ✖로 지우세요!", en:"No other 👑 in the same row/column.\n[Tap] the glowing cells to mark them ✖!" },
+    { ko:"아주 좋습니다! 👑은 대각선으로도 닿을 수 없어요.\n남은 대각선 칸에도 ✖를 칠해주세요.", en:"Great! 👑s can't touch diagonally either.\nMark the diagonal cells ✖." },
+    { ko:"✖ 때문에 빈칸이 딱 1개 남은 구역을 찾아 👑을 놓으세요.\n[더블클릭/더블탭]하세요.", en:"Find a region with only 1 empty cell and place 👑.\n[Double-tap]." },
+    { ko:"훌륭합니다! 이제 남은 칸들을 스스로 추리해서 완성해 보세요! 💡\n힌트: 각 행, 열, 구역마다 👑은 정확히 1개입니다.", en:"Excellent! Now complete the board yourself! 💡\nHint: exactly one 👑 per row, column, and region." },
+  ],
+  hints: [
+    { ko:"💡 [초급] 행, 열, 대각선, 구역별로 👑은 하나뿐입니다.", en:"💡 [Beginner] Only one 👑 per row, col, diagonal, region." },
+    { ko:"💡 [중급] 한 줄에만 몰린 구역을 찾아 나머지 칸에 ✖를 치세요.", en:"💡 [Intermediate] Find region confined to one line, X the rest." },
+    { ko:"🔥 [고급] 작은 1~2칸 구역을 시발점으로 삼으세요!", en:"🔥 [Hard] Use small 1-2 cell regions as your starting point!" },
+  ],
+  story: [
+    { ko:"달의 궤도를 완벽히 안정화시켰습니다!\n고요한 달빛이 다시 우주를 비춥니다.", en:"The Moon's orbit is stabilized!\nSilent moonlight shines again." },
+    { ko:"수성의 폭주하는 불길을 잠재웠습니다!\n그을린 대지가 서서히 숨을 쉽니다.", en:"Mercury's fires are quelled!\nThe scorched earth breathes again." },
+    { ko:"금성의 탁한 폭풍을 걷어냈습니다!\n눈부신 빛이 온 세상을 감쌉니다.", en:"Venus's storms are cleared!\nDazzling light embraces the world." },
+    { ko:"지구의 생명 에너지를 복구했습니다!\n푸른 바다와 대지가 안정을 되찾았습니다.", en:"Earth's life energy restored!\nThe blue oceans are safe." },
+    { ko:"화성의 모래폭풍을 멈췄습니다!\n붉은 대지에 새로운 희망이 피어납니다.", en:"Mars's sandstorms stopped!\nNew hope blooms on the red earth." },
+    { ko:"목성의 거대한 소용돌이를 통제했습니다!\n폭풍의 핵이 드디어 고요해졌습니다.", en:"Jupiter's vortex is controlled!\nThe storm's core is finally calm." },
+    { ko:"토성의 붕괴되던 고리를 연결했습니다!\n신비로운 궤도가 다시 회전합니다.", en:"Saturn's rings reconnected!\nThe mystic orbit spins again." },
+    { ko:"천왕성의 극심한 한파를 뚫어냈습니다!\n얼어붙은 별에 따스한 빛이 스며듭니다.", en:"Uranus's extreme cold pierced!\nWarm light seeps in." },
+    { ko:"해왕성의 심연을 정화했습니다!\n칠흑 같은 바다가 푸른빛으로 반짝입니다.", en:"Neptune's abyss purified!\nThe dark sea sparkles blue." },
+    { ko:"태양의 붕괴를 막고 우주를 구원하셨습니다!\n여왕님의 업적은 영원할 것입니다.", en:"The Sun's collapse prevented!\nYour legacy will be eternal." },
+  ]
+};
+
+// ── 지역 색상 팔레트 ────────────────────────
+const REGION_COLORS = [
+  '#1d6eb5','#c0392b','#27ae60','#d35400','#6c3483',
+  '#0e7c7b','#c0396b','#b7950b','#2c4a8e','#6d4c41',
+  '#558b2f','#00695c','#4527a0','#ad1457','#37474f'
+];
+
+// ── 게임 상태 ─────────────────────────────
+let state = {
+  level: 0,        // 0-based
+  maxUnlocked: 0,
+  size: 5,
+  grid: [],        // 2d: {regionId, cellState:'empty'|'queen'|'cross'}
+  solution: [],    // [{y,x}]
+  lives: 3,
+  hints: 1,
+  history: [],
+  isWon: false,
+  isGameOver: false,
+  isMuted: false,
+  tutDone: false,
+};
+
+// 퀸 배치 알고리즘 (N-Queens 변형)
+function generateQueens(size) {
+  const queens = [];
+  function place(row) {
+    if (row === size) return true;
+    const cols = shuffle([...Array(size)].map((_,i)=>i));
+    for (const c of cols) {
+      let valid = true;
+      for (const q of queens) {
+        if (q.x === c) { valid=false; break; }
+        if (Math.abs(q.y-row)<=1 && Math.abs(q.x-c)<=1) { valid=false; break; }
+      }
+      if (valid) {
+        queens.push({y:row,x:c});
+        if (place(row+1)) return true;
+        queens.pop();
+      }
+    }
+    return false;
+  }
+  place(0);
+  return queens;
+}
+
+// 영역 맵 생성 (BFS 확장)
+function generateRegionMap(size, queens) {
+  const regionMap = Array.from({length:size},()=>Array(size).fill(-1));
+  const sizes = Array(size).fill(1);
+  const maxSize = size + 4;
+  let queue = [];
+  // 퀸 위치가 각 영역의 씨앗
+  for (let i=0; i<size; i++) {
+    regionMap[queens[i].y][queens[i].x] = i;
+    queue.push({y:queens[i].y, x:queens[i].x, id:i});
+  }
+  queue = shuffle(queue);
+  const dirs = [{dy:-1,dx:0},{dy:1,dx:0},{dy:0,dx:-1},{dy:0,dx:1}];
+  while (queue.length > 0) {
+    queue = shuffle(queue);
+    const curr = queue.pop();
+    if (sizes[curr.id] >= maxSize) continue;
+    const neighbors = dirs
+      .map(d=>({y:curr.y+d.dy,x:curr.x+d.dx,id:curr.id}))
+      .filter(n=>n.y>=0&&n.y<size&&n.x>=0&&n.x<size&&regionMap[n.y][n.x]===-1);
+    if (neighbors.length > 0) {
+      const n = neighbors[Math.floor(Math.random()*neighbors.length)];
+      regionMap[n.y][n.x] = n.id;
+      sizes[n.id]++;
+      queue.push(n);
+      queue.push(curr);
+    }
+  }
+  // 혹시 -1 남으면 채우기
+  for (let y=0;y<size;y++) for (let x=0;x<size;x++) {
+    if (regionMap[y][x]===-1) {
+      for (const d of dirs) {
+        const ny=y+d.dy, nx=x+d.dx;
+        if (ny>=0&&ny<size&&nx>=0&&nx<size&&regionMap[ny][nx]>=0) {
+          regionMap[y][x]=regionMap[ny][nx]; break;
+        }
+      }
+      if (regionMap[y][x]===-1) regionMap[y][x]=0;
+    }
+  }
+  return regionMap;
+}
+
+function shuffle(arr) {
+  for (let i=arr.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// ── 레벨 크기 결정 ─────────────────────────
+function sizeForLevel(lv) {
+  if (lv < 10) return 5;
+  if (lv < 20) return 6;
+  if (lv < 30) return 7;
+  if (lv < 50) return 8;
+  if (lv < 80) return 9;
+  return 10;
+}
+
+// ── 힌트 초기 개수 ─────────────────────────
+function hintsForLevel(lv) {
+  if (lv < 10) return 2;
+  if (lv < 20) return 1;
+  return 0;
+}
+
+// ── 레벨 로드 ──────────────────────────────
+function loadLevel(lv) {
+  state.level = lv;
+  state.size = sizeForLevel(lv);
+  state.isWon = false;
+  state.isGameOver = false;
+  state.history = [];
+  state.hints = 1; // 웹 버전: 항상 1개 무료 힌트
+
+  // 보드 생성
+  const queens = generateQueens(state.size);
+  const regionMap = generateRegionMap(state.size, queens);
+  state.solution = queens;
+
+  // 그리드 초기화
+  state.grid = Array.from({length:state.size},(_,y)=>
+    Array.from({length:state.size},(_,x)=>({
+      regionId: regionMap[y][x],
+      cellState: 'empty'
+    }))
+  );
+
+  // 초반 힌트 퀸 표시
+  const numHints = hintsForLevel(lv);
+  for (let i=0; i<numHints; i++) {
+    const q = queens[i];
+    state.grid[q.y][q.x].cellState = 'queen';
+  }
+
+  updateTheme();
+  renderBoard();
+  updateUI();
+  updateMsg();
+}
+
+// ── 테마 적용 ──────────────────────────────
+function updateTheme() {
+  const ch = Math.floor(state.level / 10) % T.chapters.length;
+  const theme = T.chapters[ch];
+  document.documentElement.style.setProperty('--bg1', theme.bg1);
+  document.documentElement.style.setProperty('--bg2', theme.bg2);
+  document.documentElement.style.setProperty('--neon', theme.neon);
+  document.body.style.background = `linear-gradient(135deg, ${theme.bg1}, ${theme.bg2})`;
+  document.getElementById('chapter-name').textContent = theme[lang];
+  document.getElementById('level-num').textContent = `Level ${state.level + 1}`;
+}
+
+// ── 셀 크기 계산 ───────────────────────────
+function calcCellSize() {
+  const area = document.getElementById('game-area');
+  const pad = 20;
+  const maxW = area.clientWidth - pad;
+  const maxH = area.clientHeight - pad;
+  return Math.min(Math.floor(maxW / state.size), Math.floor(maxH / state.size), 80);
+}
+
+// ── 보드 렌더 ──────────────────────────────
+function renderBoard() {
+  const board = document.getElementById('board');
+  const cellSize = calcCellSize();
+  const iconSize = Math.round(cellSize * 0.55);
+  const crossSize = Math.round(cellSize * 0.4);
+
+  board.style.gridTemplateColumns = `repeat(${state.size}, ${cellSize}px)`;
+  board.style.gridTemplateRows = `repeat(${state.size}, ${cellSize}px)`;
+  board.style.setProperty('--cell-icon-size', iconSize+'px');
+  board.style.setProperty('--cell-cross-size', crossSize+'px');
+  board.innerHTML = '';
+
+  const tutTarget = getTutorialTarget();
+
+  for (let y=0; y<state.size; y++) {
+    for (let x=0; x<state.size; x++) {
+      const cell = state.grid[y][x];
+      const rId = cell.regionId;
+
+      const el = document.createElement('div');
+      el.className = 'cell';
+      el.dataset.y = y; el.dataset.x = x;
+
+      // 배경색
+      const baseColor = hexToRgb(REGION_COLORS[rId % REGION_COLORS.length]);
+      el.style.backgroundColor = `rgb(${baseColor})`;
+
+      // 테두리 (구역 경계)
+      const borderColor = `var(--neon)`;
+      const thin = '0.5px solid rgba(255,255,255,0.12)';
+      const thick = `2px solid ${borderColor}`;
+      el.style.borderTop    = (y===0||state.grid[y-1][x].regionId!==rId) ? thick : thin;
+      el.style.borderBottom = (y===state.size-1||state.grid[y+1][x].regionId!==rId) ? thick : thin;
+      el.style.borderLeft   = (x===0||state.grid[y][x-1].regionId!==rId) ? thick : thin;
+      el.style.borderRight  = (x===state.size-1||state.grid[y][x+1].regionId!==rId) ? thick : thin;
+
+      // 내부 콘텐츠
+      const inner = document.createElement('div');
+      inner.className = 'cell-inner';
+      if (cell.cellState === 'queen') {
+        const span = document.createElement('span');
+        span.className = 'queen-emoji'; span.textContent = '👑';
+        inner.appendChild(span);
+      } else if (cell.cellState === 'cross') {
+        const span = document.createElement('span');
+        span.className = 'cross-mark'; span.textContent = 'X';
+        inner.appendChild(span);
+      }
+      el.appendChild(inner);
+
+      // 튜토리얼 강조
+      if (tutTarget) {
+        const isTarget = tutTarget.targets.some(t=>t.x===x&&t.y===y);
+        if (isTarget) el.classList.add('tut-target');
+        else el.classList.add('tut-dim');
+      }
+
+      board.appendChild(el);
+    }
+  }
+
+  // 이벤트 (터치/마우스 통합)
+  setupBoardEvents(board, cellSize);
+
+  // 클리어 오버레이
+  document.getElementById('win-overlay').classList.toggle('show', state.isWon);
+}
+
+// ── 입력 이벤트 ────────────────────────────
+// 원본 Flutter 로직 그대로:
+//   onTap       → toggleCross(x, y)   싱글탭: 빈칸→X, X→빈칸, 정답자리→목숨감소+퀸표시
+//   onDoubleTap → toggleQueen(x, y)   더블탭: 정답자리→퀸, 틀린자리→목숨감소
+//   onPanUpdate → markCross(x, y)     드래그: 빈칸→X (정답자리면 목숨감소+퀸)
+
+let _dblTimer = null, _dblCell = null;
+
+function setupBoardEvents(board, cellSize) {
+
+  // ── 마우스 ──────────────────────────────
+  let _mouseStartCell = null, _mouseDragging = false, _mouseDragLast = null;
+
+  board.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    _mouseDragging = false; _mouseDragLast = null;
+    _mouseStartCell = getCellFromEvent(e, board, cellSize);
+  });
+
+  board.addEventListener('mousemove', e => {
+    if (!_mouseStartCell) return;
+    const {y, x} = getCellFromEvent(e, board, cellSize);
+    if (y == null) return;
+    if (!_mouseDragging && (_mouseStartCell.y !== y || _mouseStartCell.x !== x)) {
+      _mouseDragging = true;
+      // 드래그 시작 → 클릭 대기 타이머 취소
+      if (_dblTimer) { clearTimeout(_dblTimer); _dblTimer = null; _dblCell = null; }
+    }
+    if (_mouseDragging) handleMarkCross(y, x);
+  });
+
+  board.addEventListener('mouseup', e => {
+    const start = _mouseStartCell;
+    _mouseStartCell = null;
+    if (_mouseDragging) { _mouseDragging = false; _mouseDragLast = null; return; }
+    if (!start) return;
+    const {y, x} = getCellFromEvent(e, board, cellSize);
+    if (y == null || y !== start.y || x !== start.x) return;
+    // 더블클릭 판정
+    if (_dblCell && _dblCell.y === y && _dblCell.x === x) {
+      clearTimeout(_dblTimer); _dblTimer = null; _dblCell = null;
+      handleToggleQueen(y, x);
+    } else {
+      _dblCell = {y, x};
+      _dblTimer = setTimeout(() => {
+        if (_dblCell) handleToggleCross(_dblCell.y, _dblCell.x);
+        _dblCell = null; _dblTimer = null;
+      }, 260);
+    }
+  });
+
+  board.addEventListener('mouseleave', () => {
+    _mouseStartCell = null; _mouseDragging = false; _mouseDragLast = null;
+  });
+
+  // ── 터치 ────────────────────────────────
+  let _tStart = null, _tDragging = false, _tDragLast = null;
+  let _tDblCell = null, _tDblTimer = null;
+
+  board.addEventListener('touchstart', e => {
+    e.preventDefault();
+    _tDragging = false; _tDragLast = null;
+    const t = e.touches[0];
+    _tStart = getCellFromPoint(t.clientX, t.clientY, board, cellSize);
+  }, {passive: false});
+
+  board.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!_tStart) return;
+    const t = e.touches[0];
+    const {y, x} = getCellFromPoint(t.clientX, t.clientY, board, cellSize);
+    if (y == null) return;
+    if (!_tDragging && (_tStart.y !== y || _tStart.x !== x)) {
+      _tDragging = true;
+      if (_tDblTimer) { clearTimeout(_tDblTimer); _tDblTimer = null; _tDblCell = null; }
+    }
+    if (_tDragging) handleMarkCross(y, x);
+  }, {passive: false});
+
+  board.addEventListener('touchend', e => {
+    e.preventDefault();
+    const start = _tStart; _tStart = null;
+    if (_tDragging) { _tDragging = false; _tDragLast = null; return; }
+    if (!start || start.y == null) return;
+    const {y, x} = start;
+    // 더블탭 판정
+    if (_tDblCell && _tDblCell.y === y && _tDblCell.x === x) {
+      clearTimeout(_tDblTimer); _tDblTimer = null; _tDblCell = null;
+      handleToggleQueen(y, x);
+    } else {
+      _tDblCell = {y, x};
+      _tDblTimer = setTimeout(() => {
+        if (_tDblCell) handleToggleCross(_tDblCell.y, _tDblCell.x);
+        _tDblCell = null; _tDblTimer = null;
+      }, 260);
+    }
+  }, {passive: false});
+}
+
+function getCellFromEvent(e, board, cellSize) {
+  return getCellFromPoint(e.clientX, e.clientY, board, cellSize);
+}
+function getCellFromPoint(cx, cy, board, cellSize) {
+  const rect = board.getBoundingClientRect();
+  const x = Math.floor((cx - rect.left) / cellSize);
+  const y = Math.floor((cy - rect.top) / cellSize);
+  if (x >= 0 && x < state.size && y >= 0 && y < state.size) return {y, x};
+  return {y: null, x: null};
+}
+
+// ── onTap → toggleCross ────────────────────
+// 원본: 빈칸→X(정답자리면목숨감소+퀸), X→빈칸, 퀸→무시
+function handleToggleCross(y, x) {
+  if (state.isWon || state.isGameOver) return;
+  const tut = getTutorialTarget();
+  if (tut && !tut.targets.some(t => t.x === x && t.y === y)) return;
+  if (tut && tut.isQueen) return;
+  const cell = state.grid[y][x];
+  if (cell.cellState === 'queen') return;
+  saveHistory();
+  if (cell.cellState === 'empty') {
+    if (isSolutionQueen(y, x)) {
+      // 원본: 정답 자리에 크로스 시도 → 목숨 감소 + 퀸으로 표시
+      loseLife(y, x);
+    } else {
+      cell.cellState = 'cross';
+    }
+  } else if (cell.cellState === 'cross') {
+    cell.cellState = 'empty';
+  }
+  checkWin();
+  renderBoard(); updateUI(); updateMsg();
+}
+
+// ── onDoubleTap → toggleQueen ──────────────
+// 원본: 이미퀸→빈칸, 빈칸/X에서 정답→퀸, 틀리면→목숨감소
+function handleToggleQueen(y, x) {
+  if (state.isWon || state.isGameOver) return;
+  const tut = getTutorialTarget();
+  if (tut && !tut.targets.some(t => t.x === x && t.y === y)) return;
+  const cell = state.grid[y][x];
+  saveHistory();
+  if (cell.cellState === 'queen') {
+    cell.cellState = 'empty';
+  } else {
+    if (isSolutionQueen(y, x)) {
+      cell.cellState = 'queen';
+      checkWin();
+    } else {
+      loseLife(y, x);
+    }
+  }
+  renderBoard(); updateUI(); updateMsg();
+}
+
+// ── onPanUpdate → markCross ────────────────
+// 원본: 빈칸→X(정답자리면목숨감소+퀸), 이미채워진칸→무시
+let _dragLast = null;
+function handleMarkCross(y, x) {
+  if (state.isWon || state.isGameOver) return;
+  if (_dragLast && _dragLast.y === y && _dragLast.x === x) return;
+  _dragLast = {y, x};
+  const cell = state.grid[y][x];
+  if (cell.cellState !== 'empty') return;
+  if (isSolutionQueen(y, x)) {
+    loseLife(y, x);
+  } else {
+    cell.cellState = 'cross';
+  }
+  renderBoard(); updateUI(); updateMsg();
+}
+
+function isSolutionQueen(y,x) {
+  return state.solution.some(q=>q.y===y&&q.x===x);
+}
+
+function loseLife(y,x) {
+  state.lives--;
+  state.grid[y][x].cellState = 'queen'; // 표시는 해줌
+  updateLives();
+  if(state.lives<=0) {
+    state.isGameOver=true;
+    setTimeout(()=>document.getElementById('gameover-modal').classList.add('show'),600);
+  }
+}
+
+// ── 승리 체크 ──────────────────────────────
+function checkWin() {
+  const size=state.size;
+  let queenCount=0;
+  const rowC=Array(size).fill(0), colC=Array(size).fill(0);
+  const regionC={};
+
+  for(let y=0;y<size;y++) for(let x=0;x<size;x++) {
+    if(state.grid[y][x].cellState==='queen') {
+      queenCount++; rowC[y]++; colC[x]++;
+      const rId=state.grid[y][x].regionId;
+      regionC[rId]=(regionC[rId]||0)+1;
+      // 대각선 충돌 체크
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) {
+        if(!dy&&!dx) continue;
+        const ny=y+dy, nx=x+dx;
+        if(ny>=0&&ny<size&&nx>=0&&nx<size&&state.grid[ny][nx].cellState==='queen') return;
+      }
+    }
+  }
+  if(queenCount===size&&rowC.every(c=>c===1)&&colC.every(c=>c===1)&&Object.values(regionC).every(c=>c===1)) {
+    state.isWon=true;
+    if(state.level===state.maxUnlocked) { state.maxUnlocked=state.level+1; saveProgress(); }
+    const ch=Math.floor(state.level/10)%T.story.length;
+    const isChapterEnd=(state.level+1)%10===0;
+    document.getElementById('win-title').textContent = isChapterEnd
+      ? T.story[ch][lang]
+      : (lang==='ko'?'✨ WARP SUCCESS ✨':'✨ WARP SUCCESS ✨');
+  }
+}
+
+// ── 다음 레벨 / 재시작 ──────────────────────
+function nextLevel() { loadLevel(state.level+1); }
+function restartLevel() { loadLevel(state.level); }
+function revive() {
+  state.lives=3; state.isGameOver=false;
+  document.getElementById('gameover-modal').classList.remove('show');
+  loadLevel(state.level);
+}
+
+// ── 실행 취소 ──────────────────────────────
+function saveHistory() {
+  if(state.isWon||state.isGameOver) return;
+  const snap=state.grid.map(row=>row.map(c=>({...c})));
+  state.history.push({grid:snap,lives:state.lives});
+}
+function doUndo() {
+  if(!state.history.length||state.isWon) return;
+  const prev=state.history.pop();
+  state.grid=prev.grid; state.lives=prev.lives;
+  renderBoard(); updateUI(); updateMsg();
+}
+
+// ── X 전체 지우기 ──────────────────────────
+function doClearCrosses() {
+  if(state.isWon) return;
+  saveHistory();
+  for(let y=0;y<state.size;y++) for(let x=0;x<state.size;x++)
+    if(state.grid[y][x].cellState==='cross') state.grid[y][x].cellState='empty';
+  renderBoard(); updateUI(); updateMsg();
+}
+
+// ── 힌트 ───────────────────────────────────
+function doHint() {
+  if(state.isWon||state.hints<=0) return;
+  state.hints--;
+  saveHistory();
+  for(const q of state.solution) {
+    if(state.grid[q.y][q.x].cellState!=='queen') {
+      state.grid[q.y][q.x].cellState='queen';
+      checkWin(); break;
+    }
+  }
+  renderBoard(); updateUI(); updateMsg();
+}
+
+// ── 튜토리얼 단계 ──────────────────────────
+function getTutorialTarget() {
+  if(state.tutDone||state.level>0||state.isWon) return null;
+  const g=state.grid, sol=state.solution;
+  // step1: 중앙 퀸 (solution[2]) 놓기
+  const q2=sol[2];
+  if(g[q2.y][q2.x].cellState!=='queen')
+    return {targets:[{x:q2.x,y:q2.y}], msg: T.tutSteps[0][lang], isQueen:true};
+  // step2: 같은 행/열 크로스
+  const step2=[];
+  for(let i=0;i<state.size;i++) {
+    if(i!==q2.x&&g[q2.y][i].cellState!=='cross') step2.push({x:i,y:q2.y});
+    if(i!==q2.y&&g[i][q2.x].cellState!=='cross') step2.push({x:q2.x,y:i});
+  }
+  if(step2.length) return {targets:step2, msg: T.tutSteps[1][lang], isQueen:false};
+  // step3: 대각선 크로스
+  const step3=[];
+  for(let dy=-1;dy<=1;dy+=2) for(let dx=-1;dx<=1;dx+=2) {
+    const ny=q2.y+dy, nx=q2.x+dx;
+    if(ny>=0&&ny<state.size&&nx>=0&&nx<state.size&&g[ny][nx].cellState!=='cross') step3.push({x:nx,y:ny});
+  }
+  if(step3.length) return {targets:step3, msg: T.tutSteps[2][lang], isQueen:false};
+  // step4: 나머지 퀸
+  const unplacedQ=sol.filter(q=>g[q.y][q.x].cellState!=='queen');
+  if(unplacedQ.length>0) return {targets:[{x:unplacedQ[0].x,y:unplacedQ[0].y}], msg: T.tutSteps[3][lang], isQueen:true};
+  // step5: 자유 플레이
+  state.tutDone=true; saveProgress();
+  return null;
+}
+
+// ── UI 업데이트 ────────────────────────────
+function updateUI() {
+  updateLives();
+  const hintLabel = document.getElementById('hint-label');
+  hintLabel.textContent = `힌트 (${state.hints})`;
+  document.getElementById('hint-btn').disabled = state.hints<=0||state.isWon;
+  document.getElementById('undo-btn').disabled = state.history.length===0||state.isWon;
+  document.getElementById('clear-btn').disabled = state.isWon;
+  document.getElementById('win-overlay').classList.toggle('show', state.isWon);
+}
+
+function updateLives() {
+  const livesEl=document.getElementById('lives');
+  livesEl.innerHTML='';
+  for(let i=0;i<3;i++) {
+    const h=document.createElement('span');
+    h.className='heart'+(i>=state.lives?' lost':'');
+    h.textContent='❤️';
+    livesEl.appendChild(h);
+  }
+}
+
+function updateMsg() {
+  const bar=document.getElementById('msg-bar');
+  const tut=getTutorialTarget();
+  if(state.isWon) {
+    bar.textContent=lang==='ko'?'🎉 완벽합니다! 다음 은하로 워프해 볼까요?':'🎉 Perfect! Warp to the next galaxy?';
+    bar.className='win-msg';
+  } else if(tut) {
+    bar.textContent=tut.msg; bar.className='tut-active';
+  } else {
+    const lv=state.level;
+    if(lv<10) bar.textContent=T.hints[0][lang];
+    else if(lv<30) bar.textContent=T.hints[1][lang];
+    else bar.textContent=T.hints[2][lang];
+    bar.className='';
+  }
+}
+
+// ── 사운드 토글 ────────────────────────────
+function toggleSound() {
+  state.isMuted=!state.isMuted;
+  document.getElementById('sound-btn').textContent=state.isMuted?'🔇':'🔊';
+}
+
+// ── 레벨 다이얼로그 ────────────────────────
+function showLevelDialog() {
+  const grid=document.getElementById('level-grid');
+  grid.innerHTML='';
+  const max=Math.min(100, state.maxUnlocked+1);
+  for(let i=0;i<max;i++) {
+    const btn=document.createElement('button');
+    btn.className='lv-btn'+(i===state.level?' current':'');
+    btn.textContent=i+1;
+    btn.onclick=()=>{ loadLevel(i); hideLevelDialog(); };
+    grid.appendChild(btn);
+  }
+  document.getElementById('level-dialog').classList.add('show');
+}
+function hideLevelDialog() {
+  document.getElementById('level-dialog').classList.remove('show');
+}
+
+// ── 진행 저장/로드 ─────────────────────────
+function saveProgress() {
+  localStorage.setItem('qos_max', state.maxUnlocked);
+  localStorage.setItem('qos_tut', state.tutDone?'1':'0');
+}
+function loadProgress() {
+  state.maxUnlocked = parseInt(localStorage.getItem('qos_max')||'0');
+  state.tutDone = localStorage.getItem('qos_tut')==='1';
+}
+
+// ── 토스트 ─────────────────────────────────
+function showToast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ── 별 배경 생성 ───────────────────────────
+function createStars() {
+  const container=document.getElementById('stars');
+  for(let i=0;i<80;i++) {
+    const s=document.createElement('div');
+    s.className='star';
+    const sz=Math.random()*2.5+0.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${1.5+Math.random()*3}s;--delay:${-Math.random()*3}s`;
+    container.appendChild(s);
+  }
+}
+
+// ── 스플래시 타이핑 ───────────────────────
+let typingTimer=null, typingDone=false;
+function startTyping() {
+  const text=T.splashStory[lang];
+  const el=document.getElementById('splash-story');
+  el.textContent=''; let i=0;
+  typingTimer=setInterval(()=>{
+    if(i<text.length){ el.textContent+=text[i++]; }
+    else { clearInterval(typingTimer); typingDone=true; document.getElementById('tap-hint').style.display='block'; }
+  },70);
+}
+function splashTap() {
+  if(!typingDone) {
+    clearInterval(typingTimer);
+    document.getElementById('splash-story').textContent=T.splashStory[lang];
+    typingDone=true;
+    document.getElementById('tap-hint').style.display='block';
+  } else {
+    // 게임 시작
+    document.getElementById('splash').classList.remove('active');
+    document.getElementById('game').classList.add('active');
+    loadLevel(0);
+  }
+}
+
+// ── 색상 헬퍼 ──────────────────────────────
+function hexToRgb(hex) {
+  hex=hex.replace('#','');
+  const r=parseInt(hex.slice(0,2),16);
+  const g=parseInt(hex.slice(2,4),16);
+  const b=parseInt(hex.slice(4,6),16);
+  return `${r},${g},${b}`;
+}
+
+// ── 리사이즈 대응 ──────────────────────────
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('game').classList.contains('active')) renderBoard();
+});
+
+// ── 초기화 ─────────────────────────────────
+loadProgress();
+createStars();
+startTyping();
+</script>
+</body>
+</html>
